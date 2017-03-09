@@ -1,0 +1,17 @@
+{
+  "name": "newbee-router",
+  "version": "1.0.0",
+  "description": "router",
+  "main": "./src/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "webpack": "^2.2.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "xiaodezhang@foxmail.com",
+  "license": "MIT"
+}
