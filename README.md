@@ -5,16 +5,13 @@ A very easy-to-use router library and based on browser hash.
 ## 初始化
 通过routes传入路由信息
 ```
+// Router 见下方的路由信息类型定义。
 var newBeeRouter = new NewBeeRouter({
     routes:[
-        {...},
-        {...}
+        {Router},
+        {Router}
     ]
 })
-```
-也可以什么都不做。
-```
-var newBeeRouter = new NewBeeRouter();
 ```
 
 ## 路由信息
@@ -23,10 +20,10 @@ var newBeeRouter = new NewBeeRouter();
 Object Router = {
     path: String;
     name?: String;
-    isDefault?: Boolean;
-    leave?: (to: Path) => void;
-    enter?: (from: Path) => void;
-    render?: (params: Params) => void;
+    isDefault?: Boolean; // 是否为默认路由，初始化会检查路由队列中是否存在默认路由，如不存在则会抛出错误。
+    leave?: (to: String | Undefined) => void;
+    enter?: (from: String | Undefined) => void;
+    render?: (params: Object | Undefined) => void;
 }
 ```
 
@@ -44,9 +41,9 @@ new NewBeeRouter() === NewBeeRouter.app; // => true
 ```
 var rootInstance = NewBeeRouter.app;
 if (rootInstance) {
-    console.log('router已初始化完成')。
+    console.log('NewBeeRouter已初始化完成')。
 } else {
-    console.log('router还未初始化')。
+    console.log('NewBeeRouter还未初始化')。
 }
 ```
 
@@ -63,33 +60,33 @@ Object Query = {
     name: String;
     value: String;
     locked?: Boolean; // 是否锁定该值，如为true则在执行push操作时改query不会发生改变。默认为false
-    watch?: (from: Path, to: Path) => void; // 监听此query的变化
+    watch?: (from: String | Undefined, to: String | Undefined) => void; // 监听此query的变化
 }
 ```
 
-#### NewBeeRouter.app.query.add(query)
+#### NewBeeRouter.app.query.add(query: Query)
 往hash中添加query信息。
 ```
 NewBeeRouter.app.query.add(query);
 ```
 
-#### NewBeeRouter.app.query.remove(name)
+#### NewBeeRouter.app.query.remove(name: String)
 删除query。
 ```
 NewBeeRouter.app.query.remove('keyName');
 ```
-#### NewBeeRouter.app.query.get(name);
+#### NewBeeRouter.app.query.get(name: String);
 获取query。
 ```
 var keyValue = NewBeeRouter.app.query.get('keyName');
 ```
 **如果传入的name不存在，则返回空字符串。**
-#### NewBeeRouter.app.query.set(key, value);
+#### NewBeeRouter.app.query.set(key: String, value: String | Null | Undefined);
 设置query，也可执行添加操作，相当于`NewBeeRouter.app.query.add({name: key,value: value})`。
 ```
 NewBeeRouter.app.query.set('keyName', 'modifiedValue');
 ```
-#### NewBeeRouter.app.query.watch(key, cb);
+#### NewBeeRouter.app.query.watch(key: String, cb: (from: String,to: String) => void);
 监听指定query的变化情况。
 
 > 该函数负责监听query值的变化，但是并不能监听`从无到有`或`从有到无`的状态。
@@ -110,14 +107,14 @@ var currentRouter = NewBeeRouter.getCurrentRouter();
 ```
 
 
-### addRoute(router)
+### addRoute(router: Router)
 添加路由。路由信息见
 
 ```js
 NewBeeRouter.app.addRouter(route);
 ```
 
-### push(info)
+### push(info: String | Object)
 更改当前的路由信息。
 
 ```js
@@ -172,7 +169,7 @@ NewBeeRouter.app.push({path: '/query', query:{'mode': 'list'}});
 // => hash will change to "#/query?mode=list"
 ```
 
-### eachLeave(cb)
+### eachLeave(cb: (to: String) => void)
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 
@@ -182,7 +179,7 @@ NewBeeRouter.app.eachLeave(function(to){
 });
 ```
 
-### eachEnter(cb)
+### eachEnter(cb: (from: String) => void)
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 
