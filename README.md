@@ -84,7 +84,12 @@ var currentRouter = NewBeeRouter.getCurrentRouter();
 
 ```js
 NewBeeRouter.app.addRouter({
-
+    path: '',
+    name: '',
+    isDefault: true.
+    leave: function() {},
+    enter: function() {},
+    render: function(params) {}
 });
 ```
 
@@ -92,19 +97,73 @@ NewBeeRouter.app.addRouter({
 更改当前的路由信息。
 
 ```js
-NewBeeRouter.app.push();
+NewBeeRouter.app.addRouter({
+   path: '/foo',
+   render: function() {
+       console.log('this is foo');
+   }
+});
+NewBeeRouter.app.push('foo');
+// => hash will change to "#/foo"
+
+
+
+NewBeeRouter.app.addRouter({
+   path: '/bar',
+   name: 'bar',
+   render: function() {
+       console.log('this is bar');
+   }
+});
+NewBeeRouter.app.push({name: 'bar'}); 
+// => hash will change to "#/bar"
+
+
+
+NewBeeRouter.app.addRouter({
+   path: '/userinfo/:userid',
+   name: 'userinfo',
+   render: function(params) {
+       console.log('userid is ', params.userid);
+   }
+});
+NewBeeRouter.app.push({name: 'userinfo', params: {userid: '123'}});
+// => hash will change to "#/userinfo/123"
+
+
+NewBeeRouter.app.addRouter({
+   path: '/query',
+   isDefault: true, // default router and this option must be set.
+   leave: function() {
+       console.log('hash will leave hash #/query');
+   },
+   enter: function() {
+       console.log('hash will enter hash #/query');
+   },
+   render: function() {
+       console.log('this is foo');
+   }
+});
+NewBeeRouter.app.push({path: '/query', query:{'mode': 'list'}});
+// => hash will change to "#/query?mode=list"
 ```
 
 ### eachLeave(cb)
-钩子函数
+* 钩子函数
+* 系统路由信息改变时触发此函数。
 
 ```js
-NewBeeRouter.app.addRouter(function(){});
+NewBeeRouter.app.eachLeave(function(to){
+    console.log('下一个路由为：', to);
+});
 ```
 
 ### eachEnter(cb)
-钩子函数
+* 钩子函数
+* 系统路由信息改变时触发此函数。
 
 ```js
-NewBeeRouter.app.eachEnter(function(){});
+NewBeeRouter.app.eachEnter(function(from){
+    console.log('上一个路由为：', from)
+});
 ```
