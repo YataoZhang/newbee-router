@@ -1,8 +1,7 @@
 /**
  * Created by zhangyatao on 2017/3/9.
  */
-
-require('./assign');
+require('./polyfill');
 var EventEmitter = require('./event').EventEmitter;
 
 function getType(type) {

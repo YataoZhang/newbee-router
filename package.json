@@ -1,6 +1,6 @@
 {
   "name": "newbee-router",
-  "version": "1.0.0",
+  "version": "0.9.1",
   "description": "router",
   "main": "./src/index.js",
   "directories": {
@@ -13,5 +13,22 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "xiaodezhang@foxmail.com",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "webpack": "^2.2.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YataoZhang/newbee-router.git"
+  },
+  "keywords": [
+    "router",
+    "component",
+    "hash",
+    "browser"
+  ],
+  "bugs": {
+    "url": "https://github.com/YataoZhang/newbee-router/issues"
+  },
+  "homepage": "https://github.com/YataoZhang/newbee-router#readme"
 }
