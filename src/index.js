@@ -187,7 +187,7 @@ function NewBeeRouter(options) {
     }
 
     this._init();
-
+    NewBeeRouter.app = this;
 }
 
 NewBeeRouter.prototype._init = function () {
@@ -219,7 +219,7 @@ NewBeeRouter.prototype._init = function () {
         }
     }
     var hasDefault = this._routes.find(function (item) {
-        return item.defaultPath === true && !item._hasParams;
+        return item.isDefault === true && !item._hasParams;
     });
     if (!hasDefault) {
         throw new Error('no default path');
@@ -268,7 +268,7 @@ NewBeeRouter.prototype.addRoute = function (route) {
     var _route = {
         path: '',
         name: '',
-        defaultPath: false,
+        isDefault: false,
         component: null,
         enter: function () {
         },
