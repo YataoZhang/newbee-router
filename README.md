@@ -4,7 +4,7 @@ A very easy-to-use router library and based on browser hash.
 
 ## 初始化
 通过routes传入路由信息
-```
+```js
 // Router 见下方的路由信息类型定义。
 var newBeeRouter = new NewBeeRouter({
     routes:[
@@ -33,12 +33,12 @@ Object Router = {
 * 类型：`NewBeeRouter Instance`。
 * NewBeeRouter 根实例。
 
-```
+```js
 new NewBeeRouter() === NewBeeRouter.app; // => true
 ```
 
 可以通过判断是否含有app属性来判断router的初始化情况。
-```
+```js
 var rootInstance = NewBeeRouter.app;
 if (rootInstance) {
     console.log('NewBeeRouter已初始化完成')。
@@ -66,24 +66,24 @@ Object Query = {
 
 #### NewBeeRouter.app.query.add(query: Query)
 往hash中添加query信息。
-```
+```js
 NewBeeRouter.app.query.add(query);
 ```
 
 #### NewBeeRouter.app.query.remove(name: String)
 删除query。
-```
+```js
 NewBeeRouter.app.query.remove('keyName');
 ```
 #### NewBeeRouter.app.query.get(name: String);
 获取query。
-```
+```js
 var keyValue = NewBeeRouter.app.query.get('keyName');
 ```
 **如果传入的name不存在，则返回空字符串。**
 #### NewBeeRouter.app.query.set(key: String, value: String | Null | Undefined);
 设置query，也可执行添加操作，相当于`NewBeeRouter.app.query.add({name: key,value: value})`。
-```
+```js
 NewBeeRouter.app.query.set('keyName', 'modifiedValue');
 ```
 #### NewBeeRouter.app.query.watch(key: String, cb: (from: String,to: String) => void);
@@ -91,7 +91,7 @@ NewBeeRouter.app.query.set('keyName', 'modifiedValue');
 
 > 该函数负责监听query值的变化，但是并不能监听`从无到有`或`从有到无`的状态。
 
-```
+```js
 NewBeeRouter.app.query.watch('keyName', function(from, to){
     console.log(from, to);
 });
