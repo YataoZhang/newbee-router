@@ -34,7 +34,8 @@ Object Router = {
 * NewBeeRouter 根实例。
 
 ```js
-new NewBeeRouter() === NewBeeRouter.app; // => true
+var newBeeRouter = new new NewBeeRouter();
+newBeeRouter === NewBeeRouter.app; // => true
 ```
 
 可以通过判断是否含有app属性来判断router的初始化情况。
