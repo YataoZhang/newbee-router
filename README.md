@@ -1,6 +1,6 @@
 # newbee-router
 
-A very easy-to-use router library based on hash.
+A very easy-to-use router library and based on browser hash.
 
 ## 初始化
 ```
