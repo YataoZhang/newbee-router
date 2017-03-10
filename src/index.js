@@ -13,6 +13,7 @@ function getType(type) {
 var isObject = getType('Object');
 var isArray = getType('Array');
 var isString = getType('String');
+var isFunction = getType('Function');
 var emitter = new EventEmitter();
 var queryReg = /#[^?]*\?(.+)$/;
 var pathReg = /#([^?]+)/;
@@ -89,6 +90,7 @@ Query.prototype.add = function (options) {
     if (!_options.name || !_options.value || typeof _options.watch !== 'function') {
         throw new Error('no name、value or watch function.');
     }
+
     this.__keyList__[_options.name] = _options;
     this.set(_options.name, _options.value);
 };
@@ -162,10 +164,29 @@ Query.prototype._watch = function () {
                 return item.name === _new.name;
             });
             if (_old && _new.value !== _old.value) {
-                that.__keyList__[_new.name].watch(_new.value, _old.value);
+                var watchList = that.__keyList__[_new.name].watch;
+                if (isFunction(watchList)) {
+                    watchList.call(null, _new.value, _old.value);
+                } else {
+                    watchList.forEach(function (watchFn) {
+                        watchFn.call(null, _new.value, _old.value);
+                    });
+                }
             }
         });
     });
+};
+Query.prototype.watch = function (name, fn) {
+    if (name && isString(name) && isFunction(fn)) {
+        var queryInfo = this.__keyList__[name];
+        if (queryInfo) {
+            if (isArray(queryInfo.watch)) {
+                queryInfo.watch.push(fn);
+            } else {
+                queryInfo.watch = [queryInfo.watch, fn];
+            }
+        }
+    }
 };
 
 

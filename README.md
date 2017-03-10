@@ -3,6 +3,7 @@
 A very easy-to-use router library and based on browser hash.
 
 ## 初始化
+通过routes传入路由信息
 ```
 var newBeeRouter = new NewBeeRouter({
     routes:[
@@ -11,14 +12,32 @@ var newBeeRouter = new NewBeeRouter({
     ]
 })
 ```
+也可以什么都不做。
+```
+var newBeeRouter = new NewBeeRouter();
+```
 
-## attributes
+## 路由信息
+路由信息类型定义：
+```
+Object Router = {
+    path: String;
+    name?: String;
+    isDefault?: Boolean;
+    leave?: (to: Path) => void;
+    enter?: (from: Path) => void;
+    render?: (params: Params) => void;
+}
+```
+
+
+## 属性
 ### app
 * 类型：`NewBeeRouter Instance`。
 * NewBeeRouter 根实例。
 
 ```
-newBeeRouter === NewBeeRouter.app; // => true
+new NewBeeRouter() === NewBeeRouter.app; // => true
 ```
 
 可以通过判断是否含有app属性来判断router的初始化情况。
@@ -38,12 +57,20 @@ if (rootInstance) {
 
 > NOTE: 只有在NewBeeRouter实例化之后才可进行以下操作。
 
-#### NewBeeRouter.app.query.add(config)
-添加query。
+#### query类型定义
 ```
-NewBeeRouter.app.query.add({name:'KeyName', value:'keyValue', locked:true, watch:function(from, to){
-    console.log('from:', from, ' to:', to);
-}});
+Object Query = {
+    name: String;
+    value: String;
+    locked?: Boolean; // 是否锁定该值，如为true则在执行push操作时改query不会发生改变。默认为false
+    watch?: (from: Path, to: Path) => void; // 监听此query的变化
+}
+```
+
+#### NewBeeRouter.app.query.add(query)
+往hash中添加query信息。
+```
+NewBeeRouter.app.query.add(query);
 ```
 
 #### NewBeeRouter.app.query.remove(name)
@@ -58,12 +85,15 @@ var keyValue = NewBeeRouter.app.query.get('keyName');
 ```
 **如果传入的name不存在，则返回空字符串。**
 #### NewBeeRouter.app.query.set(key, value);
-设置query。
+设置query，也可执行添加操作，相当于`NewBeeRouter.app.query.add({name: key,value: value})`。
 ```
 NewBeeRouter.app.query.set('keyName', 'modifiedValue');
 ```
 #### NewBeeRouter.app.query.watch(key, cb);
 监听指定query的变化情况。
+
+> 该函数负责监听query值的变化，但是并不能监听`从无到有`或`从有到无`的状态。
+
 ```
 NewBeeRouter.app.query.watch('keyName', function(from, to){
     console.log(from, to);
@@ -79,18 +109,12 @@ NewBeeRouter.app.query.watch('keyName', function(from, to){
 var currentRouter = NewBeeRouter.getCurrentRouter();
 ```
 
+
 ### addRoute(router)
-添加路由。
+添加路由。路由信息见
 
 ```js
-NewBeeRouter.app.addRouter({
-    path: '',
-    name: '',
-    isDefault: true.
-    leave: function() {},
-    enter: function() {},
-    render: function(params) {}
-});
+NewBeeRouter.app.addRouter(route);
 ```
 
 ### push(info)
