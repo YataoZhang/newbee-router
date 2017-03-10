@@ -100,22 +100,28 @@ NewBeeRouter.app.query.watch('keyName', function(from, to){
 
 ## 实例方法
 
-### getCurrentRouter()
+### getCurrentRouter() => \[Router, Params\]
 获取当前路由信息。
 
 ```js
 var currentRouter = NewBeeRouter.getCurrentRouter();
+
+// get router info
+console.log('currentRouter is ', currentRouter[0]);
+
+// get params
+console.log('currentRouter params is ', currentRouter[1]);
 ```
 
 
-### addRoute(route: Router)
+### addRoute(route: Router) => void
 添加路由。路由信息见
 
 ```js
 NewBeeRouter.app.addRoute(route);
 ```
 
-### push(info: String | Object)
+### push(info: String | Object) => void
 更改当前的路由信息。
 
 ```js
@@ -170,7 +176,7 @@ NewBeeRouter.app.push({path: '/query', query:{'mode': 'list'}});
 // => hash will change to "#/query?mode=list"
 ```
 
-### eachLeave(cb: (to: String) => void)
+### eachLeave(cb: (to: String) => void) => void
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 
@@ -180,7 +186,7 @@ NewBeeRouter.app.eachLeave(function(to){
 });
 ```
 
-### eachEnter(cb: (from: String) => void)
+### eachEnter(cb: (from: String) => void) => void
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 

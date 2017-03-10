@@ -208,6 +208,7 @@ function NewBeeRouter(options) {
     }
 
     this._init();
+
     NewBeeRouter.app = this;
 }
 
@@ -222,9 +223,11 @@ NewBeeRouter.prototype._init = function () {
         var oldRouter = that._getCurrentRouter(oldPath)[0];
         var newRouterInfo = that._getCurrentRouter(newPath);
         var newRouter = newRouterInfo[0];
-        if (oldRouter && newRouter) {
+        if (oldRouter) {
             oldRouter.leave(newRouter && newRouter.path);
             emitter.emit('eachLeave', newRouter && newRouter.path);
+        }
+        if (newRouter) {
             newRouter.enter(oldRouter && oldRouter.path);
             newRouter.render(newRouterInfo[1]);
             emitter.emit('eachEnter', oldRouter && oldRouter.path);
@@ -235,6 +238,7 @@ NewBeeRouter.prototype._init = function () {
         var currentRouter = currentRouterInfo[0];
         if (currentRouter) {
             currentRouter.enter();
+            emitter.emit('eachEnter');
             currentRouter.render(currentRouterInfo[1]);
             return;
         }
@@ -242,22 +246,26 @@ NewBeeRouter.prototype._init = function () {
     var hasDefault = this._routes.find(function (item) {
         return item.isDefault === true && !item._hasParams;
     });
+
     if (!hasDefault) {
-        throw new Error('no default path');
+        return;
     }
     this.push(hasDefault.path);
 
 };
 
 NewBeeRouter.prototype._getCurrentRouter = function (path) {
-    if (!path) {
+    if (path === '') {
+        return [null, {}];
+    }
+    if (path === undefined || path === null) {
         var hash = location.hash || '#/';
         path = hash.match(/#([^?]+)/);
         if (path && path.length && path[1]) {
             path = path[1];
         } else {
             console.warn('wrong path:', hash);
-            return null;
+            return [null, {}];
         }
     }
 
@@ -300,7 +308,7 @@ NewBeeRouter.prototype.addRoute = function (route) {
         }
     };
     if (isObject(route)) {
-        _route = [Object.assign({}, _route, route)];
+        route = [Object.assign({}, _route, route)];
     }
     if (isArray(route)) {
         route.forEach(function (item) {
@@ -339,41 +347,12 @@ NewBeeRouter.prototype.push = function (path) {
         info = Object.assign({}, info, path);
     }
 
-    if (info.path) {
-        location.hash = '#/' + info.path;
-        return;
-    }
-    if (!info.name) {
-        console.warn('no set route name');
+    if (!info.path && !info.name) {
         return;
     }
 
-    var nextRoute = this._routes.find(function (item) {
-        return item.name === info.name;
-    });
-
-    if (!nextRoute) {
-        console.warn('no get route name : ', info.name);
-        return;
-    }
-
-    var completePath = '';
-
-    if (nextRoute._hasParams) {
-        var spreadPath = nextRoute._paramPath.split('/([^/]+)');
-
-        nextRoute._params.forEach(function (item) {
-            if (!(item in info.params)) {
-                throw new Error('no params : ', item);
-            }
-            completePath += spreadPath.shift() + '/' + info.params[item];
-        });
-        completePath += spreadPath.join('');
-
-    } else {
-        completePath = nextRoute.path;
-    }
-    var arr = [];
+    // create query
+    var query = [];
 
     // add locked query
     for (var key in this.query.__keyList__) {
@@ -386,19 +365,51 @@ NewBeeRouter.prototype.push = function (path) {
         }
     }
 
-
     for (var n in info.query) {
         if (!info.query.hasOwnProperty(n)) {
             continue;
         }
-        arr.push(encodeURIComponent(n) + '=' + encodeURIComponent(info.query[n]));
+        query.push(encodeURIComponent(n) + '=' + encodeURIComponent(info.query[n]));
     }
-    arr = arr.join('&');
 
-    if (arr) {
-        completePath += '?' + arr;
+    query = query.join('&');
+
+    // create path
+    var terminalPath = '';
+    if (info.path) {
+        terminalPath = '#/' + info.path;
+    } else {
+        // find next router
+        var nextRoute = this._routes.find(function (item) {
+            return item.name === info.name;
+        });
+
+        if (!nextRoute) {
+            console.warn('no get route name : ', info.name);
+            return;
+        }
+
+        if (nextRoute._hasParams) {
+            var spreadPath = nextRoute._paramPath.split('/([^/]+)');
+
+            nextRoute._params.forEach(function (item) {
+                if (!(item in info.params)) {
+                    throw new Error('no params : ', item);
+                }
+                terminalPath += spreadPath.shift() + '/' + info.params[item];
+            });
+            terminalPath += spreadPath.join('');
+
+        } else {
+            terminalPath = nextRoute.path;
+        }
     }
-    location.hash = completePath;
+
+
+    if (query) {
+        terminalPath += '?' + query;
+    }
+    location.hash = terminalPath;
 };
 
 NewBeeRouter.prototype.eachLeave = function (cb) {

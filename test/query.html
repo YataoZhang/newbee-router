@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/newBeeRouter.min.js"></script>
+    <script src="step.js"></script>
+</head>
+<body>
+<script>
+    var newBeeRouter = new NewBeeRouter({
+        routes: [
+            {
+                path: '/a',
+                isDefault: true,
+                leave: function (to) {
+                    console.log('/a leave, to is ', to);
+                },
+                enter: function (from) {
+                    console.log('/a enter, from is ', from);
+                },
+                render: function () {
+                    console.log(1);
+                }
+            },
+            {
+                path: '/b',
+                name: 'b',
+                isDefault: false,
+                leave: function (to) {
+                    console.log('/b leave, to is ', to);
+                },
+                enter: function (from) {
+                    console.log('/b enter, from is ', from);
+                },
+                render: function () {
+                    console.log(2);
+                }
+            }
+        ]
+    });
+
+    newBeeRouter.query.add({
+        name: 'type',
+        value: 'test',
+        locked: true,
+        watch: function (to, from) {
+            console.log('query type was changed: from is ', from, ' to is ', to);
+        }
+    });
+
+    setpTest(function () {
+        newBeeRouter.push('b');
+        if (location.hash !== '#/b?type=test') {
+            throw new Error('query locked');
+        }
+    });
+
+    newBeeRouter.query.watch('type', function (to, from) {
+        console.log('listen watch event. query type to is ', to, ' from is ', from);
+    });
+
+    setpTest(function () {
+        newBeeRouter.query.set('type', 'watchtext');
+        if (location.hash !== '#/b?type=watchtext') {
+            throw new Error('query set');
+        }
+    });
+
+    setpTest(function () {
+        newBeeRouter.query.set('mode', 'grid');
+        newBeeRouter.query.set('class', 'big');
+        if (location.hash !== '#/b?type=watchtext&mode=grid&class=big') {
+            throw new Error('query set');
+        }
+    });
+
+    setpTest(function () {
+        newBeeRouter.query.remove('mode');
+        if (location.hash !== '#/b?type=watchtext&class=big') {
+            throw new Error('query remove');
+        }
+    });
+
+    setpTest(function () {
+        newBeeRouter.query.remove('type');
+        if (location.hash !== '#/b?class=big') {
+            throw new Error('query remove');
+        }
+    });
+
+    setpTest(function () {
+        newBeeRouter.query.remove('class');
+        if (location.hash !== '#/b') {
+            throw new Error('query remove');
+        }
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="../dist/newBeeRouter.min.js"></script>
+    <script src="step.js"></script>
+    <script>
+        var newBeeRouter = new NewBeeRouter({
+            routes: {
+                path: '/a',
+                isDefault: true,
+                leave: function (to) {
+                    console.log('/a leave, to is ', to);
+                },
+                enter: function (from) {
+                    console.log('/a enter, from is ', from);
+                },
+                render: function () {
+                    console.log(1);
+                }
+            }
+        });
+
+        var cucrrentRouter = newBeeRouter.getCurrentRouter();
+        console.log('cucrrentRouter is ', cucrrentRouter);
+
+        NewBeeRouter.app.addRoute({
+            path: '/b',
+            name: 'b',
+            render: function () {
+                console.log('render /b');
+            }
+        });
+
+        NewBeeRouter.app.addRoute({
+            path: '/user/:userid',
+            name: 'user',
+            render: function (params) {
+                console.log('render user and params is ', params);
+            }
+        });
+
+        newBeeRouter.eachLeave(function (to) {
+            console.log('[1] each leave. to is ', to);
+        });
+        newBeeRouter.eachLeave(function (to) {
+            console.log('[2] each leave. to is ', to);
+        });
+        newBeeRouter.eachEnter(function (from) {
+            console.log('[1] each enter. from is ', from);
+        });
+        newBeeRouter.eachEnter(function (from) {
+            console.log('[2] each enter. from is ', from);
+        });
+
+        setpTest(function () {
+            newBeeRouter.push('a');
+            if (location.hash !== '#/a') {
+                throw new Error('Error push(path)');
+            }
+        });
+
+
+        setpTest(function () {
+            newBeeRouter.push({name: 'b'});
+            if (location.hash !== '#/b') {
+                throw new Error('Error push({name: name})');
+            }
+        });
+
+        setpTest(function () {
+            newBeeRouter.push({name: 'user', params: {userid: 123}});
+            if (location.hash !== '#/user/123') {
+                throw new Error('Error push({name: name, params: {})');
+            }
+        });
+
+        setpTest(function () {
+            newBeeRouter.push({name: 'user', params: {userid: 123}});
+            if (location.hash !== '#/user/123') {
+                throw new Error('Error push({name: name, params: {})');
+            }
+        });
+
+        setpTest(function () {
+            newBeeRouter.push({name: 'user', params: {userid: 345}, query: {mode: 'list'}});
+            if (location.hash !== '#/user/345?mode=list') {
+                throw new Error('Error push({name: name, params: {}, query: {})');
+            }
+        });
+
+
+
+    </script>
+</head>
+<body>
+
+</body>
+</html>
