@@ -108,18 +108,18 @@ var currentRouter = NewBeeRouter.getCurrentRouter();
 ```
 
 
-### addRoute(router: Router)
+### addRoute(route: Router)
 添加路由。路由信息见
 
 ```js
-NewBeeRouter.app.addRouter(route);
+NewBeeRouter.app.addRoute(route);
 ```
 
 ### push(info: String | Object)
 更改当前的路由信息。
 
 ```js
-NewBeeRouter.app.addRouter({
+NewBeeRouter.app.addRoute({
    path: '/foo',
    render: function() {
        console.log('this is foo');
@@ -130,7 +130,7 @@ NewBeeRouter.app.push('foo');
 
 
 
-NewBeeRouter.app.addRouter({
+NewBeeRouter.app.addRoute({
    path: '/bar',
    name: 'bar',
    render: function() {
@@ -142,7 +142,7 @@ NewBeeRouter.app.push({name: 'bar'});
 
 
 
-NewBeeRouter.app.addRouter({
+NewBeeRouter.app.addRoute({
    path: '/userinfo/:userid',
    name: 'userinfo',
    render: function(params) {
@@ -153,7 +153,7 @@ NewBeeRouter.app.push({name: 'userinfo', params: {userid: '123'}});
 // => hash will change to "#/userinfo/123"
 
 
-NewBeeRouter.app.addRouter({
+NewBeeRouter.app.addRoute({
    path: '/query',
    isDefault: true, // default router and this option must be set.
    leave: function() {
