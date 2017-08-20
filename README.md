@@ -34,7 +34,6 @@ Object Router = {
 * NewBeeRouter 根实例。
 
 ```js
-var newBeeRouter = new new NewBeeRouter();
 newBeeRouter === NewBeeRouter.app; // => true
 ```
 
@@ -42,9 +41,9 @@ newBeeRouter === NewBeeRouter.app; // => true
 ```js
 var rootInstance = NewBeeRouter.app;
 if (rootInstance) {
-    console.log('NewBeeRouter已初始化完成')。
+    console.log('NewBeeRouter已初始化完成').
 } else {
-    console.log('NewBeeRouter还未初始化')。
+    console.log('NewBeeRouter还未初始化').
 }
 ```
 
@@ -68,49 +67,91 @@ Object Query = {
 #### NewBeeRouter.app.query.add(query: Query)
 往hash中添加query信息。
 ```js
-NewBeeRouter.app.query.add(query);
+NewBeeRouter.app.query.add({
+    name: 'age',
+    value: 18,
+    locked: true,
+    watch: function(from, to){
+        console.log('年纪从', from, '变成了', to);
+    }
+});
+// hash => #?age=18
+// 可以简单看似`NewBeeRouter.app.query.set({name: 'age', value: 18})`。具体区别请见`set`方法。
 ```
 
 #### NewBeeRouter.app.query.remove(name: String)
 删除query。
 ```js
-NewBeeRouter.app.query.remove('keyName');
+// 假设hash为 => #?type=man&size=small
+NewBeeRouter.app.query.remove('type');
+// hash => #?size=small
 ```
 #### NewBeeRouter.app.query.get(name: String);
 获取query。
 ```js
-var keyValue = NewBeeRouter.app.query.get('keyName');
+NewBeeRouter.app.query.get('age');
+// => 18
 ```
 **如果传入的name不存在，则返回空字符串。**
-#### NewBeeRouter.app.query.set(key: String, value: String | Null | Undefined);
-设置query，也可执行添加操作，相当于`NewBeeRouter.app.query.add({name: key,value: value})`。
+#### NewBeeRouter.app.query.set
+##### 1、NewBeeRouter.app.query.set(key: String, value: String | Null | Undefined);
+##### 2、NewBeeRouter.app.query.set({name: String, value: String | Null | Undefined});
+##### 3、NewBeeRouter.app.query.set([{key: String, value: String | Null | Undefined ... }]);
+设置query，也可执行添加操作。
 ```js
-NewBeeRouter.app.query.set('keyName', 'modifiedValue');
+// 方式1
+NewBeeRouter.app.query.set('city', 'beijing');
+// hash => #?age=18&city=beijing
+
+// 方式2
+NewBeeRouter.app.query.set({name: 'company', value:'baidu'});
+// hash => #?age=18&company=baidu
+
+// 方式3
+NewBeeRouter.app.query.set({firstname: 'zhang', lastname: 'yatao', age: 20});
+// hash => #?firstname=zhang&lastname=yatao&age=20
 ```
+
+> 此方法与`NewBeeRouter.app.query.add`都可以往hash中添加query信息。但是`add`方法可以额外添加附属信息或函数，如`locked`属性和`watch`函数。
+
 #### NewBeeRouter.app.query.watch(key: String, cb: (from: String,to: String) => void);
 监听指定query的变化情况。
 
 > 该函数负责监听query值的变化，但是并不能监听`从无到有`或`从有到无`的状态。
 
 ```js
-NewBeeRouter.app.query.watch('keyName', function(from, to){
-    console.log(from, to);
+NewBeeRouter.app.query.watch('age', function(from, to){
+    console.log('年纪从', from, '变成了', to);
 });
 ```
 
 ## 实例方法
 
-### getCurrentRouter() => \[Router, Params\]
-获取当前路由信息。
+### getRouterConfig(routeName: String) => Object | null
+根据传入的路由名称获取配置
 
 ```js
-var currentRouter = NewBeeRouter.getCurrentRouter();
+NewBeeRouter.app.addRoute({
+    path: '/test',
+    name: 'test'
+});
+var config = NewBeeRouter.app.getRouterConfig('test');
+console.log(config); // => {path: '/test', name: 'test'}
+```
 
-// get router info
-console.log('currentRouter is ', currentRouter[0]);
+### getCurrentRouter() => {Router: String | null, Params: Object}
+根据当前hash在已注册的路由信息中获取符合的路由信息。
 
-// get params
-console.log('currentRouter params is ', currentRouter[1]);
+```js
+// 假如当前hash为`#/test`
+
+var currentRouter = newBeeRouter.getCurrentRouter();
+
+// 获取当前路由信息配置为 => {path: '/test', name: 'test'}
+console.log('currentRouter is ', currentRouter.route);
+
+// 如果当前路由是携带参数的，那么params就有值，否则为空对象. => null
+console.log('currentRouter params is ', currentRouter.params);
 ```
 
 
@@ -118,7 +159,10 @@ console.log('currentRouter params is ', currentRouter[1]);
 添加路由。路由信息见
 
 ```js
+// 方式1
 NewBeeRouter.app.addRoute(route);
+// 方式2
+NewBeeRouter.app.addRoute([route1, route2, route3]);
 ```
 
 ### push(info: String | Object) => void
@@ -176,22 +220,52 @@ NewBeeRouter.app.push({path: '/query', query:{'mode': 'list'}});
 // => hash will change to "#/query?mode=list"
 ```
 
-### eachLeave(cb: (to: String) => void) => void
+### eachLeave(cb: (newPath: String) => void) => void
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 
 ```js
-NewBeeRouter.app.eachLeave(function(to){
-    console.log('下一个路由为：', to);
+NewBeeRouter.app.eachLeave(function(newPath){
+    console.log('下一个路由为：', newPath);
 });
 ```
 
-### eachEnter(cb: (from: String) => void) => void
+### eachEnter(cb: (oldPath: String) => void) => void
 * 钩子函数
 * 系统路由信息改变时触发此函数。
 
 ```js
-NewBeeRouter.app.eachEnter(function(from){
-    console.log('上一个路由为：', from)
+NewBeeRouter.app.eachEnter(function(oldPath){
+    console.log('上一个路由为：', oldPath)
+});
+```
+
+### onEnter(routeName: String, cb: (path: String) => void) => void
+* 钩子函数
+* 当进入指定路由时触发
+
+```js
+NewBeeRouter.app.onEnter('test', function(oldPath){
+    console.log('上一个路由路径为：', oldPath);
+});
+```
+
+### onLeave(routeName: String, cb: (path: String) => void) => void
+* 钩子函数
+* 当离开指定路由时触发
+
+```js
+NewBeeRouter.app.onLeave('test', function(newPath){
+    console.log('下一个路由路径为：', newPath);
+});
+```
+
+### onRender(routeName: String, cb: (name: String) => void) => void
+* 钩子函数
+* 当开始渲染指定路由时触发
+
+```js
+NewBeeRouter.app.onRender('test', function(routeName){
+    console.log('当前路由的名称为：', routeName);
 });
 ```
