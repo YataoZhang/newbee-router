@@ -5,7 +5,7 @@
 
 var _ = require('underscore');
 var bindHashChange = require('./bindHashChange.js');
-var util = require('./util.js');
+var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
 var Query = require('./Query.js');
@@ -138,7 +138,7 @@ NewBeeRouter.prototype.addRoute = function (route) {
 
     _.each(route, function (routeItem) {
 
-        routeItem = util.assign({}, {
+        routeItem = Object.assign({}, {
             path: '',
             name: '',
             isDefault: false,
