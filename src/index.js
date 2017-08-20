@@ -5,7 +5,7 @@
 
 var _ = require('underscore');
 var bindHashChange = require('./bindHashChange.js');
-var util = require('util');
+var inherits = require('inherits');
 var EventEmitter = require('events').EventEmitter;
 
 var Query = require('./Query.js');
@@ -35,7 +35,7 @@ function NewBeeRouter(options) {
 
     this._init();
 }
-util.inherits(NewBeeRouter, EventEmitter);
+inherits(NewBeeRouter, EventEmitter);
 
 NewBeeRouter.prototype._init = function () {
 
