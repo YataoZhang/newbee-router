@@ -1,337 +1,185 @@
 /**
- * Created by zhangyatao on 2017/3/9.
+ * @file router.js
+ * @author zhangyatao
  */
-require('./polyfill');
-var EventEmitter = require('./event').EventEmitter;
 
-function getType(type) {
-    return function (data) {
-        return Object.prototype.toString.call(data) === '[object ' + type + ']';
-    }
-}
+var _ = require('underscore');
+var bindHashChange = require('./bindHashChange.js');
+var util = require('./util.js');
+var EventEmitter = require('events').EventEmitter;
 
-var isObject = getType('Object');
-var isArray = getType('Array');
-var isString = getType('String');
-var isFunction = getType('Function');
-var emitter = new EventEmitter();
-var queryReg = /#[^?]*\?(.+)$/;
-var pathReg = /#([^?]+)/;
+var Query = require('./Query.js');
+var pathReg = /#([^?]*)\??/;
 
 function normal(href, reg) {
-    var query = href.match(reg) || '';
-    if (query && query.length && query[1]) {
-        query = query[1] || '';
-    }
-    return query;
+    return (href.match(reg) || [, ''])[1];
 }
-
-function hashChangePolyfill() {
-    var msie = document.documentMode;
-    var isSupport = (msie && msie >= 8) || window.HashChangeEvent != undefined;
-
-
-    function init() {
-        var hash = location.hash;
-        var url = location.href;
-        setInterval(function () {
-            if (hash != location.hash) {
-                var eventArgs = new HashChangeEvent("hashchange");
-                eventArgs.oldURL = url;
-                eventArgs.newURL = location.href;
-                emitter.emit('hashchange', eventArgs);
-            }
-            hash = location.hash;
-            url = location.href;
-
-        }, 100);
-    }
-
-    if (!isSupport) {
-        window.HashChangeEvent = function (type) {
-            this.isTrusted = true;
-            this.oldURL = "";
-            this.newURL = "";
-            this.type = type;
-        };
-
-        init();
-    } else {
-        function hashChange(e) {
-            emitter.emit('hashchange', e);
-        }
-
-        if (window.addEventListener) {
-            window.addEventListener('hashchange', hashChange, false)
-        } else {
-            window.attachEvent('onhashchange', hashChange);
-        }
-    }
-}
-
-hashChangePolyfill();
-
-function Query() {
-
-    this.__keyList__ = {};
-    this._watch();
-}
-
-Query.prototype.add = function (options) {
-    // {name:'',value:'',locked:true,watch:function(){}}
-    var _options = Object.assign({}, {
-        name: '',
-        value: '',
-        locked: false,
-        watch: function (to, from) {
-
-        }
-    }, options);
-    if (!_options.name || !_options.value || typeof _options.watch !== 'function') {
-        throw new Error('no name、value or watch function.');
-    }
-
-    this.__keyList__[_options.name] = _options;
-    this.set(_options.name, _options.value);
-};
-Query.prototype.remove = function (key) {
-    this.set(key, null);
-};
-Query.prototype.get = function (key) {
-    return this.set(key);
-};
-Query.prototype.set = function (name, value) {
-    // key was exists or not
-    if (!isString(name) || name == "") {
-        return;
-    }
-
-    var hash = location.hash;
-    value = encodeURIComponent(value);
-    name = encodeURIComponent(name);
-
-    // 获取hash
-    if (value === 'undefined') {
-        var result = hash.match(new RegExp("&*\\b" + name + "=([^&]*)", "i"));
-        if (result && result.length && result[1]) {
-            return result[1];
-        }
-        return null;
-    }
-
-    if (!new RegExp('[?&]' + name + '=[^?]+').test(hash)) {
-        return location.hash = hash + (/\?/.test(hash) ? '&' : '?') + name + '=' + value;
-    }
-
-    // 删除或修改hash
-    location.hash = hash.replace(new RegExp('([?&])(' + name + '=)[^?&]+(&?)', 'g'), function (str, $1, $2, $3) {
-        // 删除
-        if (value === '' || value === 'null') {
-            if ($1 === '&')
-                return $3;
-            if ($3)
-                return $1;
-            return '';
-        } else {
-            return $1 + $2 + value;
-        }
-
-    });
-};
-Query.prototype._watch = function () {
-
-
-    var that = this;
-    emitter.on('hashchange', function (e) {
-        if (!/#.*\?/.test(e.newURL)) {
-            return;
-        }
-        var newQuery = normal(e.newURL, queryReg);
-        var oldQuery = normal(e.oldURL, queryReg);
-        if (oldQuery === newQuery) {
-            return
-        }
-        newQuery = newQuery.split('&').map(function (item) {
-            item = item.split('=');
-            return {name: item[0], value: item[1]};
-        });
-        oldQuery = oldQuery.split('&').map(function (item) {
-            item = item.split('=');
-            return {name: item[0], value: item[1]};
-        });
-        newQuery.forEach(function (_new) {
-            var _old = oldQuery.find(function (item) {
-                return item.name === _new.name;
-            });
-            if (_old && _new.value !== _old.value) {
-                var watchList = that.__keyList__[_new.name].watch;
-                if (isFunction(watchList)) {
-                    watchList.call(null, _new.value, _old.value);
-                } else {
-                    watchList.forEach(function (watchFn) {
-                        watchFn.call(null, _new.value, _old.value);
-                    });
-                }
-            }
-        });
-    });
-};
-Query.prototype.watch = function (name, fn) {
-    if (name && isString(name) && isFunction(fn)) {
-        var queryInfo = this.__keyList__[name];
-        if (queryInfo) {
-            if (isArray(queryInfo.watch)) {
-                queryInfo.watch.push(fn);
-            } else {
-                queryInfo.watch = [queryInfo.watch, fn];
-            }
-        }
-    }
-};
-
-
+/**
+ * NewBeeRouter
+ * @param options
+ * @constructor
+ */
 function NewBeeRouter(options) {
+    options || (options = {});
+    EventEmitter.call(this);
     // {routes:[{...},{...}]}
     // {routes:{...}}
-    var _options = {
-        routes: []
-    };
 
     this._routes = [];
     this.query = new Query();
 
-    options = Object.assign({}, _options, options);
-
     var route = options.routes;
-    if (isArray(route) || isObject(route)) {
+    if (route) {
         this.addRoute(route);
     }
 
     this._init();
-
-    NewBeeRouter.app = this;
 }
+util.inherits(NewBeeRouter, EventEmitter);
 
 NewBeeRouter.prototype._init = function () {
+
     var that = this;
-    emitter.on('hashchange', function (e) {
-        var newPath = normal(e.newURL, pathReg);
-        var oldPath = normal(e.oldURL, pathReg);
+
+    bindHashChange(function (newURL, oldURL) {
+        if (newURL === oldURL) {
+            return;
+        }
+        var newPath = normal(newURL, pathReg);
+        var oldPath = normal(oldURL, pathReg);
+
         if (newPath === oldPath) {
             return;
         }
-        var oldRouter = that._getCurrentRouter(oldPath)[0];
-        var newRouterInfo = that._getCurrentRouter(newPath);
-        var newRouter = newRouterInfo[0];
+
+        var oldRouter = that.getCurrentRouter(oldPath).route;
+        var newRouterInfo = that.getCurrentRouter(newPath);
+
+        var newRouter = newRouterInfo.route;
         if (oldRouter) {
-            oldRouter.leave(newRouter && newRouter.path);
-            emitter.emit('eachLeave', newRouter && newRouter.path);
+            oldRouter._emitter.emit('leave', newRouter && newRouter.path);
+            that.emit('eachLeave', newRouter && newRouter.path);
         }
         if (newRouter) {
-            newRouter.enter(oldRouter && oldRouter.path);
-            newRouter.render(newRouterInfo[1]);
-            emitter.emit('eachEnter', oldRouter && oldRouter.path);
+            newRouter._emitter.emit('enter', oldRouter && oldRouter.path);
+            newRouter._emitter.emit('render', newRouter.name, newRouterInfo.params);
+            that.emit('eachEnter', oldRouter && oldRouter.path);
         }
     });
-    if (location.hash) {
-        var currentRouterInfo = this._getCurrentRouter();
-        var currentRouter = currentRouterInfo[0];
-        if (currentRouter) {
-            currentRouter.enter();
-            emitter.emit('eachEnter');
-            currentRouter.render(currentRouterInfo[1]);
-            return;
-        }
+
+
+    var currentRouterInfo = this.getCurrentRouter();
+    var currentRouter = currentRouterInfo.route;
+    if (currentRouter) {
+        currentRouter._emitter.emit('enter', currentRouter.path);
+        currentRouter._emitter.emit('render', currentRouter.name, currentRouterInfo.params);
+        that.emit('eachEnter');
+        return;
     }
-    var hasDefault = this._routes.find(function (item) {
+
+
+    // 当前没有hash或者hash不是标准的，则使用默认的路由。
+    var hasDefault = _.find(this._routes, function (item) {
         return item.isDefault === true && !item._hasParams;
     });
 
-    if (!hasDefault) {
-        return;
-    }
-    this.push(hasDefault.path);
-
+    hasDefault && this.push(hasDefault);
 };
 
-NewBeeRouter.prototype._getCurrentRouter = function (path) {
+NewBeeRouter.prototype.getCurrentRouter = function (path) {
     if (path === '') {
-        return [null, {}];
+        return {
+            route: null,
+            params: {}
+        };
     }
     if (path === undefined || path === null) {
-        var hash = location.hash || '#/';
-        path = hash.match(/#([^?]+)/);
-        if (path && path.length && path[1]) {
-            path = path[1];
-        } else {
-            console.warn('wrong path:', hash);
-            return [null, {}];
+        var hash = location.hash;
+        path = normal(hash);
+        if (!path) {
+            return {
+                route: null,
+                params: {}
+            };
         }
     }
 
     var params = {};
-    var route = this._routes.find(function (item) {
-        if (item._hasParams && new RegExp(item._paramPath).test(path)) {
-            path.replace(new RegExp(item._paramPath), function () {
+    var route = _.find(this._routes, function (item) {
+        if (!item._hasParams) {
+            return item.path === path;
+        }
+
+        var reg = new RegExp(item._paramPath);
+        if (reg.test(path)) {
+            path.replace(reg, function () {
                 var paramsList = [].slice.call(arguments, 1, item._params.length + 1);
-                item._params.forEach(function (param, index) {
-                    params[param] = paramsList[index]
+                _.each(item._params, function (param, index) {
+                    params[param] = paramsList[index] || '';
                 });
             });
             return true;
-        } else {
-            return item.path === path;
         }
     });
 
-    return [route, params];
-};
-NewBeeRouter.prototype.getCurrentRouter = function () {
-    return this._getCurrentRouter();
+
+    return {route: route, params: params};
+
 };
 
 NewBeeRouter.prototype.addRoute = function (route) {
     // {...}
     // [{...},{...}]
     var that = this;
-    var _route = {
-        path: '',
-        name: '',
-        isDefault: false,
-        component: null,
-        enter: function () {
-        },
-        leave: function () {
-        },
-        render: function () {
 
-        }
-    };
-    if (isObject(route)) {
-        route = [Object.assign({}, _route, route)];
+    if (!_.isArray(route)) {
+        route = [route];
     }
-    if (isArray(route)) {
-        route.forEach(function (item) {
-            if (!/^\//.test(item.path)) {
-                item.path = '/' + item.path;
-            }
-            var isExists = that._routes.some(function (r) {
-                return item.path && r.path === item.path;
+
+    _.each(route, function (routeItem) {
+
+        routeItem = util.assign({}, {
+            path: '',
+            name: '',
+            isDefault: false,
+            enter: null,
+            leave: null,
+            render: null,
+            _emitter: new EventEmitter()
+        }, routeItem);
+
+        if (!/^\//.test(routeItem.path)) {
+            routeItem.path = '/' + routeItem.path;
+        }
+
+        var isExists = _.some(that._routes, function (r) {
+            return r.path === routeItem.path;
+        });
+
+        if (isExists) {
+            return;
+        }
+
+        if (/\/:([^/])+/.test(routeItem.path)) {
+            var arr = [];
+            routeItem._hasParams = true;
+            routeItem._paramPath = routeItem.path.replace(/:([^\/]+)/g, function (str, param) {
+                arr.push(param);
+                return '([^\/]+)';
             });
-            if (!isExists) {
-                if (/\/:([^/])+/.test(item.path)) {
-                    item._hasParams = true;
-                    var arr = [];
-                    item._paramPath = item.path.replace(/:([^\/]+)/g, function () {
-                        arr.push(arguments[1]);
-                        return '([^\/]+)';
-                    });
-                    item._params = arr;
-                }
-                that._routes.push(Object.assign({}, _route, item));
+            routeItem._params = arr;
+        }
+
+        _.each(['enter', 'leave', 'render'], function (type) {
+            if (_.isFunction(routeItem[type])) {
+                routeItem._emitter.on(type, routeItem[type]);
+                routeItem[type] = void 0;
             }
         });
-    }
+
+        that._routes.push(routeItem);
+
+    });
 
 };
 NewBeeRouter.prototype.push = function (path) {
@@ -340,13 +188,14 @@ NewBeeRouter.prototype.push = function (path) {
     // {name:'',params:{'a':1,'b':2}}
     // {name:'',query:{'a':1,'b':2}}
     var info = {path: '', name: '', params: {}, query: {}};
-    if (isString(path)) {
-        info.path = path.replace(/^\//, '');
+    if (_.isString(path)) {
+        info.path = path.replace(/^[#/]+/, '');
     }
-    if (isObject(path)) {
+    if (_.isObject(path)) {
         info = Object.assign({}, info, path);
     }
 
+    // route必须有path或者name，
     if (!info.path && !info.name) {
         return;
     }
@@ -361,7 +210,8 @@ NewBeeRouter.prototype.push = function (path) {
         }
         var item = this.query.__keyList__[key];
         if (item.locked && !(key in info.query)) {
-            info.query[key] = this.query.get(key);
+            var queryValue = this.query.get(key);
+            queryValue && (info.query[key] = this.query.get(key));
         }
     }
 
@@ -380,9 +230,7 @@ NewBeeRouter.prototype.push = function (path) {
         terminalPath = '#/' + info.path;
     } else {
         // find next router
-        var nextRoute = this._routes.find(function (item) {
-            return item.name === info.name;
-        });
+        var nextRoute = this.getRouterConfig(info.name);
 
         if (!nextRoute) {
             console.warn('no get route name : ', info.name);
@@ -392,7 +240,7 @@ NewBeeRouter.prototype.push = function (path) {
         if (nextRoute._hasParams) {
             var spreadPath = nextRoute._paramPath.split('/([^/]+)');
 
-            nextRoute._params.forEach(function (item) {
+            _.each(nextRoute._params, function (item) {
                 if (!(item in info.params)) {
                     throw new Error('no params : ', item);
                 }
@@ -413,11 +261,30 @@ NewBeeRouter.prototype.push = function (path) {
 };
 
 NewBeeRouter.prototype.eachLeave = function (cb) {
-    emitter.on('eachLeave', cb)
+    this.on('eachLeave', cb)
 };
 
 NewBeeRouter.prototype.eachEnter = function (cb) {
-    emitter.on('eachEnter', cb)
+    this.on('eachEnter', cb)
 };
-module.exports = NewBeeRouter;
+NewBeeRouter.prototype.getRouterConfig = function (routerName) {
+    return _.find(this._routes, function (item) {
+        return item.name === routerName;
+    });
+};
 
+_.each(['enter', 'leave', 'render'], function (type) {
+    NewBeeRouter.prototype['on' + type.replace(/^[a-z]/, function (x) {
+        return x.toUpperCase();
+    })] = function (routerName, cb) {
+        if (!_.isFunction(cb)) {
+            return;
+        }
+        var route = this.getRouterConfig(routerName);
+        route && route._emitter.on(type, cb);
+    };
+});
+
+NewBeeRouter.app = new NewBeeRouter();
+
+module.exports = NewBeeRouter;
