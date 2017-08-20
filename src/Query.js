@@ -4,7 +4,6 @@
  */
 
 var _ = require('underscore');
-var util = require('./util.js');
 var bindHashChange = require('./bindHashChange.js');
 var QUERY_REG = /[?&]([^=&?/]+)(=([^=&?/]+))?/g;
 
@@ -20,7 +19,7 @@ function Query() {
 
 Query.prototype.add = function (options) {
     // {name:'',value:'',locked:true,watch:function(){}}
-    var _options = util.assign({}, {
+    var _options = Object.assign({}, {
         name: '',
         value: '',
         locked: false,
